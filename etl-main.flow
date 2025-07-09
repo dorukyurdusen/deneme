@@ -1,0 +1,40 @@
+nodes:
+  - name: dimensions
+    type: subflow
+    config:
+      flow.name: dimensions.subflow
+    dependsOn:
+      - extractions
+  - name: dummy-task2
+    type: transform
+    config:
+      target: vsunny
+      sql_file: etl-main/sql/f_etl-main_dummy-task.sql
+      explain_only: false
+    dependsOn:
+      - services
+  - name: dummy-task2
+    type: transform
+    config:
+      target: vsunny
+      sql_file: etl-main/sql/f_etl-main_dummy-task2.sql
+      explain_only: false
+    dependsOn:
+      - services
+  - name: extraction
+    type: subflow
+    config:
+      flow.name: extractions.subflow
+    dependsOn: []
+  - name: services
+    type: subflow
+    config:
+      flow.name: services.subflow
+    dependsOn: []
+  - name: transformers
+    type: subflow
+    config:
+      flow.name: transform.subflow
+    dependsOn:
+      - dimensions
+config: {}
