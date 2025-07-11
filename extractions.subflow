@@ -1,0 +1,110 @@
+nodes:
+  - name: check-customer-dq
+    type: great-expectations
+    config:
+      connectionName: vsunny
+      table: tpch.customer
+      expectations:
+        - expectation_type: expect_column_values_to_not_be_null
+          expectation_label: check_c_mktsegment_is_not_null
+          column: c_mktsegment
+          mostly: null
+        - expectation_type: expect_column_values_to_be_unique
+          expectation_label: check_c_custkey
+          column: c_custkey
+          mostly: null
+      failOnValidationError: false
+    dependsOn: []
+  - name: check-nation-dq
+    type: great-expectations
+    config:
+      connectionName: vsunny
+      table: tpch.nation
+      expectations:
+        - expectation_type: expect_column_values_to_be_unique
+          expectation_label: check if nations are unique
+          column: n_name
+          mostly: null
+      failOnValidationError: false
+    dependsOn:
+      - extr-customer
+      - extr-orders
+  - name: check-orders-dq
+    type: great-expectations
+    config:
+      connectionName: vsunny
+      table: tpch.orders
+      expectations:
+        - expectation_type: expect_column_max_to_be_between
+          expectation_label: o_totalprice
+          column: o_totalprice
+          min_value: 800
+          max_value: 592000
+          strict_min: false
+          strict_max: false
+      failOnValidationError: false
+    dependsOn:
+      - get-max-o-orderkey
+  - name: check-orders-ss-dq
+    type: great-expectations
+    config:
+      connectionName: singlestore
+      table: tpch.orders
+      expectations:
+        - expectation_type: expect_column_max_to_be_between
+          expectation_label: o_totalprice
+          column: o_totalprice
+          min_value: 800
+          max_value: 592000
+          strict_min: false
+          strict_max: false
+      failOnValidationError: false
+    dependsOn:
+      - get-max-o-orderkey
+  - name: extr-customer
+    type: transfer
+    config:
+      subtype: spark
+      conf: etl-main/conf/s_extractions_extr-customer.json
+      source: vsunny
+      target: hive
+      source_table: tpch.v_customer
+      explain_only: false
+      empty_source_check: false
+      target_table: tpch.customer
+    dependsOn:
+      - check-customer-dq
+  - name: extr-nation
+    type: transfer
+    config:
+      subtype: spark
+      conf: etl-main/conf/s_extractions_extr-nation.json
+      source: vsunny
+      target: hive
+      source_table: tpch.nation
+      explain_only: false
+      empty_source_check: false
+      target_table: tpch.nation
+    dependsOn:
+      - check-nation-dq
+  - name: extr-orders
+    type: transfer
+    config:
+      subtype: spark
+      conf: etl-main/conf/s_extractions_extr-orders.json
+      source: vsunny
+      target: hive
+      explain_only: false
+      empty_source_check: false
+      target_table: tpch.orders
+      sql_file: etl-main/sql/s_extractions_extr-orders.sql
+    dependsOn:
+      - check-orders-dq
+  - name: get-max-o-orderkey
+    type: parameter
+    config:
+      param_name: max_o_orderkey
+      target: hive
+      sql_file: etl-main/sql/s_extractions_get-max-o-orderkey.sql
+    dependsOn: []
+config: {}

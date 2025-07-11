@@ -1,0 +1,9 @@
+nodes:
+  - name: enrich-customer
+    type: transform
+    config:
+      target: postgres
+      sql_file: etl-main/sql/f_pg-test_enrich-customer.sql
+      explain_only: false
+    dependsOn: []
+config: {}

@@ -1,0 +1,13 @@
+nodes:
+  - name: dim-customer
+    type: scd
+    config:
+      subtype: spark
+      conf: etl-main/conf/s_dimensions_dim-customer.json
+      target: hive
+      explain_only: false
+      source_table: tpch.customer
+      change_tolerance: 10
+      target_table: dim.dim_customer
+    dependsOn: []
+config: {}

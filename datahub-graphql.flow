@@ -1,0 +1,27 @@
+nodes:
+  - name: datahub-grapql
+    type: http-post-request
+    config:
+      directory: minio-rc://lakestore/datahub/graphql
+      extension: json
+      parameterFilePath: null
+      storageSecret: minio-rc
+      sourceURL: https://datahub.172.12.2.53.nip.io/api/v2/graphql
+      ifDirectoryExists: OVERWRITE
+      compression: none
+      verbose: false
+      timeout: 60
+      headers:
+        - key: Authorization
+          value: >-
+            Bearer
+            eyJhbGciOiJIUzI1NiJ9.eyJhY3RvclR5cGUiOiJVU0VSIiwiYWN0b3JJZCI6ImRhdGFodWIiLCJ0eXBlIjoiUEVSU09OQUwiLCJ2ZXJzaW9uIjoiMiIsImp0aSI6ImYxZDk3NGM2LWQ2N2UtNDRiOC1hM2FiLTg2ZDY0YjViNzEwNSIsInN1YiI6ImRhdGFodWIiLCJleHAiOjE3NDk0MTc2NDAsImlzcyI6ImRhdGFodWItbWV0YWRhdGEtc2VydmljZSJ9.04l0zC-8dgtt-MS-WUN3giDYSRVAHkn-87no4uLLCwQ
+        - key: Content-Type
+          value: application/json
+      body: |-
+        {
+            "query": "{ searchAcrossEntities(input: { count: 100000, start: 0, query: \"*\", types: [DATASET], orFilters: [{ and: [{ field: \"typeNames\", values: [\"Table\", \"View\"] }] }] }) { start count total searchResults { entity { ... on Dataset { name urn platform { urn type lastIngested name } schemaMetadata { name version cluster fields { label fieldPath description tags { tags { tag { urn type properties { name description } ownership { owners { owner { ... on CorpUser { type username } ... on CorpGroup { name } } } } } associatedUrn } } } createdAt } } } } } }"
+        }
+      skipSSLVerification: true
+    dependsOn: []
+config: {}

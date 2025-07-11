@@ -1,0 +1,83 @@
+nodes:
+  - name: cleanup-metars-dirs
+    type: rclone
+    config:
+      rcloneCmd: rclone delete  minio-henkan:share/servicedata/metars/temp -vvv
+      sourceCredential: minio-henkan
+      targetCredential: minio-henkan
+      verbose: true
+    dependsOn: []
+  - name: convert-metars-xml-to-json
+    type: xml-to-jsonl
+    config:
+      pathToTargetData: minio-henkan://share/servicedata/metars/temp/jsonl
+      storageSecret: minio-henkan
+      xPath: .//METAR
+      pathToSourceData: minio-henkan://share/servicedata/metars/temp/xml/*.xml
+      forceList:
+        - sky_condition
+      ifDirectoryExists: OVERWRITE
+      sourceCompression: none
+      targetCompression: none
+      extension: jsonl
+      verbose: true
+      pathToTarget: minio-henkan://share/servicedata/metars/temp/jsonl
+    dependsOn:
+      - get-metars-data
+  - name: get-metars-data
+    type: http-get-request
+    config:
+      directory: minio-henkan://share/servicedata/metars/temp/xml
+      extension: xml
+      storageSecret: minio-henkan
+      sourceURL: https://aviationweather.gov/data/cache/metars.cache.xml
+      ifDirectoryExists: OVERWRITE
+      compression: none
+      verbose: false
+      timeout: 60
+      headers:
+        - key: null
+          value: null
+    dependsOn:
+      - cleanup-metars-dirs
+      - get-timestamp
+  - name: get-timestamp
+    type: parameter
+    config:
+      param_name: metars_load_ts
+      target: vsunny
+      sql_file: etl-main/sql/s_services_get-timestamp.sql
+    dependsOn: []
+  - name: load-metars-to-table
+    type: transform
+    config:
+      target: hive
+      sql_file: etl-main/sql/s_services_load-metars-to-table.sql
+      explain_only: false
+    dependsOn:
+      - convert-metars-xml-to-json
+  - name: move-processed-data
+    type: rclone
+    config:
+      rcloneCmd: >-
+        rclone move minio-henkan:share/servicedata/metars/temp/jsonl
+        minio-henkan://share/servicedata/metars/jsonl/ -v
+      sourceCredential: minio-henkan
+      targetCredential: minio-henkan
+      verbose: true
+    dependsOn:
+      - transfer-order-nation-summary-to-vertica
+  - name: transfer-order-nation-summary-to-vertica
+    type: transfer
+    config:
+      subtype: spark
+      conf: etl-main/conf/s_services_transfer-order-nation-summary-to-vertica.json
+      source: hive
+      target: vsunny
+      source_table: external_data.metars
+      explain_only: false
+      empty_source_check: true
+      target_table: workshop.metars
+    dependsOn:
+      - load-metars-to-table
+config: {}
